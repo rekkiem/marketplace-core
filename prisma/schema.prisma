@@ -1,7 +1,7 @@
 // This is your Prisma schema file
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["fullTextSearch", "fullTextIndex"]
+  provider = "prisma-client-js"
+  //previewFeatures = ["fullTextSearch", "fullTextIndex"]
 }
 
 datasource db {
@@ -28,26 +28,26 @@ enum SellerStatus {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  phone         String?   @unique
-  passwordHash  String
-  
-  firstName     String
-  lastName      String
-  avatar        String?
-  
+  id           String  @id @default(cuid())
+  email        String  @unique
+  phone        String? @unique
+  passwordHash String
+
+  firstName String
+  lastName  String
+  avatar    String?
+
   role          UserRole  @default(USER)
   emailVerified DateTime?
   phoneVerified DateTime?
-  
+
   // Audit
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  deletedAt     DateTime? // soft delete
-  lastLoginAt   DateTime?
-  lastLoginIp   String?
-  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime? // soft delete
+  lastLoginAt DateTime?
+  lastLoginIp String?
+
   // Relations
   seller        Seller?
   addresses     Address[]
@@ -56,7 +56,7 @@ model User {
   savedProducts SavedProduct[]
   cartItems     CartItem[]
   notifications Notification[]
-  
+
   @@index([email])
   @@index([role])
   @@index([deletedAt])
@@ -64,60 +64,60 @@ model User {
 }
 
 model Seller {
-  id              String       @id @default(cuid())
-  userId          String       @unique
-  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   // Business Info
-  businessName    String
-  businessType    String       // "EMPRESA", "PYME", "INDEPENDIENTE"
-  rut             String       @unique // Chile-specific tax ID
-  businessEmail   String
-  businessPhone   String
-  
+  businessName  String
+  businessType  String // "EMPRESA", "PYME", "INDEPENDIENTE"
+  rut           String @unique // Chile-specific tax ID
+  businessEmail String
+  businessPhone String
+
   // Legal
-  legalRepName    String?
-  legalRepRut     String?
-  bankAccount     Json?        // encrypted sensitive data
-  
+  legalRepName String?
+  legalRepRut  String?
+  bankAccount  Json? // encrypted sensitive data
+
   // Status & Verification
-  status          SellerStatus @default(PENDING_VERIFICATION)
-  verifiedAt      DateTime?
-  verificationNotes String?    @db.Text
-  
+  status            SellerStatus @default(PENDING_VERIFICATION)
+  verifiedAt        DateTime?
+  verificationNotes String?      @db.Text
+
   // Reputation (denormalized for performance)
-  rating          Float        @default(0)
-  totalReviews    Int          @default(0)
-  totalSales      Int          @default(0)
-  totalRevenue    Float        @default(0)
-  completionRate  Float        @default(0) // % de órdenes completadas
-  responseTime    Float?       // avg en horas
-  
+  rating         Float  @default(0)
+  totalReviews   Int    @default(0)
+  totalSales     Int    @default(0)
+  totalRevenue   Float  @default(0)
+  completionRate Float  @default(0) // % de órdenes completadas
+  responseTime   Float? // avg en horas
+
   // Comisión
-  commissionRate  Float        @default(0.15) // 15% default
-  
+  commissionRate Float @default(0.15) // 15% default
+
   // Metadata
-  bio             String?      @db.Text
-  logo            String?
-  coverImage      String?
-  specialties     String[]     // ["Electricidad", "Plomería"]
-  serviceAreas    String[]     // ["Santiago", "Valparaíso"]
-  certifications  Json?
-  
+  bio            String?  @db.Text
+  logo           String?
+  coverImage     String?
+  specialties    String[] // ["Electricidad", "Plomería"]
+  serviceAreas   String[] // ["Santiago", "Valparaíso"]
+  certifications Json?
+
   // Settings
-  settings        Json?        // Preferencias del vendedor
-  
+  settings Json? // Preferencias del vendedor
+
   // Audit
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  deletedAt       DateTime?
-  
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
   // Relations
-  products        Product[]
-  orderItems      OrderItem[]
-  reviews         Review[]
-  inventory       Inventory[]
-  
+  products   Product[]
+  orderItems OrderItem[]
+  reviews    Review[]
+  inventory  Inventory[]
+
   @@index([status])
   @@index([rating])
   @@index([deletedAt])
@@ -125,35 +125,35 @@ model Seller {
 }
 
 model Address {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  label       String   // "Casa", "Oficina", "Obra"
-  firstName   String
-  lastName    String
-  phone       String
-  
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  label     String // "Casa", "Oficina", "Obra"
+  firstName String
+  lastName  String
+  phone     String
+
   // Chile-specific
-  street      String
-  number      String
-  apartment   String?
-  comuna      String   // Comuna
-  region      String   // Región
-  city        String
-  zipCode     String?
-  
+  street    String
+  number    String
+  apartment String?
+  comuna    String // Comuna
+  region    String // Región
+  city      String
+  zipCode   String?
+
   // Geo
-  lat         Float?
-  lng         Float?
-  
-  isDefault   Boolean  @default(false)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  orders      Order[]
-  
+  lat Float?
+  lng Float?
+
+  isDefault Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  orders Order[]
+
   @@index([userId])
   @@index([userId, isDefault])
   @@map("addresses")
@@ -164,9 +164,9 @@ model Address {
 // ============================================
 
 enum ProductType {
-  PHYSICAL      // Producto físico
-  SERVICE       // Servicio puro
-  HYBRID        // Bundle: producto + instalación
+  PHYSICAL // Producto físico
+  SERVICE // Servicio puro
+  HYBRID // Bundle: producto + instalación
 }
 
 enum ProductStatus {
@@ -178,32 +178,32 @@ enum ProductStatus {
 }
 
 model Category {
-  id          String     @id @default(cuid())
-  slug        String     @unique
+  id          String  @id @default(cuid())
+  slug        String  @unique
   name        String
-  description String?    @db.Text
+  description String? @db.Text
   icon        String?
   image       String?
-  
+
   // Jerarquía
-  parentId    String?
-  parent      Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children    Category[] @relation("CategoryHierarchy")
-  
+  parentId String?
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+
   // SEO
   metaTitle       String?
   metaDescription String?
-  
+
   // Display
-  displayOrder    Int        @default(0)
-  isActive        Boolean    @default(true)
-  isFeatured      Boolean    @default(false)
-  
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  
-  products    Product[]
-  
+  displayOrder Int     @default(0)
+  isActive     Boolean @default(true)
+  isFeatured   Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  products Product[]
+
   @@index([slug])
   @@index([parentId])
   @@index([isActive, isFeatured])
@@ -212,80 +212,80 @@ model Category {
 }
 
 model Product {
-  id              String        @id @default(cuid())
-  sku             String        @unique
-  
-  sellerId        String
-  seller          Seller        @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  
-  categoryId      String
-  category        Category      @relation(fields: [categoryId], references: [id])
-  
+  id  String @id @default(cuid())
+  sku String @unique
+
+  sellerId String
+  seller   Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+
   // Basic Info
-  name            String
-  slug            String        @unique
-  description     String        @db.Text
-  shortDescription String?      @db.Text
-  
+  name             String
+  slug             String  @unique
+  description      String  @db.Text
+  shortDescription String? @db.Text
+
   // Type & Status
-  type            ProductType
-  status          ProductStatus @default(DRAFT)
-  
+  type   ProductType
+  status ProductStatus @default(DRAFT)
+
   // Pricing
-  price           Float
-  compareAtPrice  Float?        // Precio de comparación
-  cost            Float?        // Costo (solo seller)
-  currency        String        @default("CLP")
-  
+  price          Float
+  compareAtPrice Float? // Precio de comparación
+  cost           Float? // Costo (solo seller)
+  currency       String @default("CLP")
+
   // Service-specific
-  serviceDuration Int?          // Duración en minutos
-  serviceArea     Json?         // Zonas de cobertura
-  requiresQuote   Boolean       @default(false)
-  
+  serviceDuration Int? // Duración en minutos
+  serviceArea     Json? // Zonas de cobertura
+  requiresQuote   Boolean @default(false)
+
   // Physical-specific
-  weight          Float?        // kg
-  dimensions      Json?         // {length, width, height} cm
-  requiresShipping Boolean      @default(true)
-  shippingCost    Float?
-  
+  weight           Float? // kg
+  dimensions       Json? // {length, width, height} cm
+  requiresShipping Boolean @default(true)
+  shippingCost     Float?
+
   // Media
-  images          String[]
-  videos          String[]
-  documents       String[]      // Fichas técnicas
-  
+  images    String[]
+  videos    String[]
+  documents String[] // Fichas técnicas
+
   // SEO
   metaTitle       String?
   metaDescription String?
-  
+
   // Stats (denormalized)
-  rating          Float         @default(0)
-  totalReviews    Int           @default(0)
-  totalSales      Int           @default(0)
-  totalRevenue    Float         @default(0)
-  viewCount       Int           @default(0)
-  
+  rating       Float @default(0)
+  totalReviews Int   @default(0)
+  totalSales   Int   @default(0)
+  totalRevenue Float @default(0)
+  viewCount    Int   @default(0)
+
   // Features & Tags
-  features        Json?
-  tags            String[]
-  
+  features Json?
+  tags     String[]
+
   // Flags
-  isFeatured      Boolean       @default(false)
-  isNew           Boolean       @default(false)
-  allowReviews    Boolean       @default(true)
-  
+  isFeatured   Boolean @default(false)
+  isNew        Boolean @default(false)
+  allowReviews Boolean @default(true)
+
   // Timestamps
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  publishedAt     DateTime?
-  deletedAt       DateTime?
-  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+  deletedAt   DateTime?
+
   // Relations
-  inventory       Inventory?
-  orderItems      OrderItem[]
-  reviews         Review[]
-  savedBy         SavedProduct[]
-  cartItems       CartItem[]
-  
+  inventory  Inventory?
+  orderItems OrderItem[]
+  reviews    Review[]
+  savedBy    SavedProduct[]
+  cartItems  CartItem[]
+
   @@index([sellerId])
   @@index([categoryId])
   @@index([slug])
@@ -295,7 +295,7 @@ model Product {
   @@index([sellerId, status])
   @@index([categoryId, status])
   @@index([isFeatured, status])
-  @@fulltext([name, description])
+  //@@fulltext([name, description])
   @@map("products")
 }
 
@@ -304,29 +304,29 @@ model Product {
 // ============================================
 
 model Inventory {
-  id              String   @id @default(cuid())
-  productId       String   @unique
-  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
-  sellerId        String
-  seller          Seller   @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  
+  id        String  @id @default(cuid())
+  productId String  @unique
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  sellerId String
+  seller   Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
   // Stock
-  quantity        Int      @default(0)
-  reserved        Int      @default(0)
-  available       Int      @default(0) // computed: quantity - reserved
-  
+  quantity  Int @default(0)
+  reserved  Int @default(0)
+  available Int @default(0) // computed: quantity - reserved
+
   // Thresholds
-  lowStockAlert   Int      @default(5)
-  restockThreshold Int     @default(10)
-  
+  lowStockAlert    Int @default(5)
+  restockThreshold Int @default(10)
+
   // Tracking
-  lastRestockAt   DateTime?
-  lastSaleAt      DateTime?
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
+  lastRestockAt DateTime?
+  lastSaleAt    DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([sellerId])
   @@index([available])
   @@index([quantity])
@@ -334,20 +334,20 @@ model Inventory {
 }
 
 model StockMovement {
-  id          String   @id @default(cuid())
-  productId   String
-  
-  type        String   // "SALE", "RESTOCK", "ADJUSTMENT", "RETURN", "RESERVATION", "RELEASE"
-  quantity    Int
-  reference   String?  // Order ID, nota
-  
+  id        String @id @default(cuid())
+  productId String
+
+  type      String // "SALE", "RESTOCK", "ADJUSTMENT", "RETURN", "RESERVATION", "RELEASE"
+  quantity  Int
+  reference String? // Order ID, nota
+
   balanceBefore Int
   balanceAfter  Int
-  
-  notes       String?  @db.Text
-  createdBy   String?
-  createdAt   DateTime @default(now())
-  
+
+  notes     String?  @db.Text
+  createdBy String?
+  createdAt DateTime @default(now())
+
   @@index([productId])
   @@index([type])
   @@index([createdAt])
@@ -359,23 +359,23 @@ model StockMovement {
 // ============================================
 
 model CartItem {
-  id          String    @id @default(cuid())
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  productId   String
-  product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
-  quantity    Int       @default(1)
-  
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  quantity Int @default(1)
+
   // Service-specific
   scheduledAt DateTime?
   metadata    Json?
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  expiresAt   DateTime? // Reserva temporal
-  
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expiresAt DateTime? // Reserva temporal
+
   @@unique([userId, productId])
   @@index([userId])
   @@index([expiresAt])
@@ -387,18 +387,18 @@ model CartItem {
 // ============================================
 
 enum OrderStatus {
-  PENDING           // Orden creada, esperando pago
-  PAID              // Pago confirmado
-  CONFIRMED         // Seller confirmó
-  PREPARING         // En preparación
-  READY_TO_SHIP     // Listo para envío
-  SHIPPED           // Enviado
-  IN_TRANSIT        // En tránsito
-  DELIVERED         // Entregado
-  COMPLETED         // Completado
-  CANCELLED         // Cancelado
-  REFUNDED          // Reembolsado
-  DISPUTED          // En disputa
+  PENDING // Orden creada, esperando pago
+  PAID // Pago confirmado
+  CONFIRMED // Seller confirmó
+  PREPARING // En preparación
+  READY_TO_SHIP // Listo para envío
+  SHIPPED // Enviado
+  IN_TRANSIT // En tránsito
+  DELIVERED // Entregado
+  COMPLETED // Completado
+  CANCELLED // Cancelado
+  REFUNDED // Reembolsado
+  DISPUTED // En disputa
 }
 
 enum OrderType {
@@ -408,55 +408,55 @@ enum OrderType {
 }
 
 model Order {
-  id              String      @id @default(cuid())
-  orderNumber     String      @unique
-  
-  userId          String
-  user            User        @relation(fields: [userId], references: [id])
-  
+  id          String @id @default(cuid())
+  orderNumber String @unique
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
   // Type & Status
-  type            OrderType
-  status          OrderStatus @default(PENDING)
-  
+  type   OrderType
+  status OrderStatus @default(PENDING)
+
   // Shipping
-  addressId       String?
-  address         Address?    @relation(fields: [addressId], references: [id])
-  shippingMethod  String?
-  trackingNumber  String?
-  
+  addressId      String?
+  address        Address? @relation(fields: [addressId], references: [id])
+  shippingMethod String?
+  trackingNumber String?
+
   // Pricing
-  subtotal        Float
-  shippingCost    Float       @default(0)
-  tax             Float       @default(0)
-  discount        Float       @default(0)
-  total           Float
-  currency        String      @default("CLP")
-  
+  subtotal     Float
+  shippingCost Float  @default(0)
+  tax          Float  @default(0)
+  discount     Float  @default(0)
+  total        Float
+  currency     String @default("CLP")
+
   // Payment
-  paymentId       String?     @unique
-  payment         Payment?
-  
+  paymentId String?  @unique
+  payment   Payment?
+
   // Metadata
-  notes           String?     @db.Text
-  internalNotes   String?     @db.Text
-  metadata        Json?
-  
+  notes         String? @db.Text
+  internalNotes String? @db.Text
+  metadata      Json?
+
   // Timeline
-  paidAt          DateTime?
-  confirmedAt     DateTime?
-  shippedAt       DateTime?
-  deliveredAt     DateTime?
-  completedAt     DateTime?
-  cancelledAt     DateTime?
-  
+  paidAt      DateTime?
+  confirmedAt DateTime?
+  shippedAt   DateTime?
+  deliveredAt DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
+
   // Audit
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   // Relations
-  items           OrderItem[]
-  statusHistory   OrderStatusHistory[]
-  
+  items         OrderItem[]
+  statusHistory OrderStatusHistory[]
+
   @@index([userId])
   @@index([status])
   @@index([orderNumber])
@@ -466,45 +466,45 @@ model Order {
 }
 
 model OrderItem {
-  id          String      @id @default(cuid())
-  
-  orderId     String
-  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  
-  productId   String
-  product     Product     @relation(fields: [productId], references: [id])
-  
-  sellerId    String
-  seller      Seller      @relation(fields: [sellerId], references: [id])
-  
+  id String @id @default(cuid())
+
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  sellerId String
+  seller   Seller @relation(fields: [sellerId], references: [id])
+
   // Snapshot
-  name        String
-  sku         String
-  type        ProductType
-  
-  quantity    Int
-  unitPrice   Float
-  subtotal    Float
-  
+  name String
+  sku  String
+  type ProductType
+
+  quantity  Int
+  unitPrice Float
+  subtotal  Float
+
   // Comisión
   commissionRate   Float
   commissionAmount Float
-  
+
   // Service-specific
-  scheduledAt      DateTime?
-  serviceStatus    String?
+  scheduledAt        DateTime?
+  serviceStatus      String?
   serviceCompletedAt DateTime?
-  
+
   // Status
-  status      String      @default("PENDING")
-  
-  metadata    Json?
-  
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  
-  review      Review?
-  
+  status String @default("PENDING")
+
+  metadata Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  review Review?
+
   @@index([orderId])
   @@index([productId])
   @@index([sellerId])
@@ -513,16 +513,16 @@ model OrderItem {
 }
 
 model OrderStatusHistory {
-  id          String      @id @default(cuid())
-  orderId     String
-  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  
-  status      OrderStatus
-  notes       String?     @db.Text
-  createdBy   String?
-  
-  createdAt   DateTime    @default(now())
-  
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  status    OrderStatus
+  notes     String?     @db.Text
+  createdBy String?
+
+  createdAt DateTime @default(now())
+
   @@index([orderId])
   @@index([createdAt])
   @@map("order_status_history")
@@ -552,48 +552,48 @@ enum PaymentMethod {
 }
 
 model Payment {
-  id              String        @id @default(cuid())
-  
-  orderId         String        @unique
-  order           Order         @relation(fields: [orderId], references: [id])
-  
+  id String @id @default(cuid())
+
+  orderId String @unique
+  order   Order  @relation(fields: [orderId], references: [id])
+
   // Amount
-  amount          Float
-  currency        String        @default("CLP")
-  
+  amount   Float
+  currency String @default("CLP")
+
   // Method
-  method          PaymentMethod
-  provider        String
-  
+  method   PaymentMethod
+  provider String
+
   // Status
-  status          PaymentStatus @default(PENDING)
-  
+  status PaymentStatus @default(PENDING)
+
   // External References (idempotency)
-  externalId      String?       @unique
-  idempotencyKey  String        @unique
-  
+  externalId     String? @unique
+  idempotencyKey String  @unique
+
   // Provider Response
-  providerData    Json?
-  
+  providerData Json?
+
   // Refund
-  refundedAmount  Float         @default(0)
-  refundedAt      DateTime?
-  refundReason    String?
-  
+  refundedAmount Float     @default(0)
+  refundedAt     DateTime?
+  refundReason   String?
+
   // Timeline
-  authorizedAt    DateTime?
-  capturedAt      DateTime?
-  failedAt        DateTime?
-  
+  authorizedAt DateTime?
+  capturedAt   DateTime?
+  failedAt     DateTime?
+
   // Metadata
-  failureReason   String?
-  metadata        Json?
-  
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
-  webhooks        PaymentWebhook[]
-  
+  failureReason String?
+  metadata      Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  webhooks PaymentWebhook[]
+
   @@index([status])
   @@index([externalId])
   @@index([idempotencyKey])
@@ -602,20 +602,20 @@ model Payment {
 }
 
 model PaymentWebhook {
-  id          String   @id @default(cuid())
-  paymentId   String
-  payment     Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
-  
-  provider    String
-  event       String
-  payload     Json
-  
-  processed   Boolean  @default(false)
+  id        String  @id @default(cuid())
+  paymentId String
+  payment   Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  provider String
+  event    String
+  payload  Json
+
+  processed   Boolean   @default(false)
   processedAt DateTime?
-  error       String?  @db.Text
-  
-  createdAt   DateTime @default(now())
-  
+  error       String?   @db.Text
+
+  createdAt DateTime @default(now())
+
   @@index([paymentId])
   @@index([processed])
   @@index([createdAt])
@@ -627,49 +627,49 @@ model PaymentWebhook {
 // ============================================
 
 model Review {
-  id          String   @id @default(cuid())
-  
+  id String @id @default(cuid())
+
   // CRÍTICO: Solo post-compra
-  orderItemId String   @unique
+  orderItemId String    @unique
   orderItem   OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
-  
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id])
-  
-  sellerId    String
-  seller      Seller   @relation(fields: [sellerId], references: [id])
-  
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  sellerId String
+  seller   Seller @relation(fields: [sellerId], references: [id])
+
   // Rating
-  rating      Int      // 1-5
-  title       String?
-  comment     String?  @db.Text
-  
+  rating  Int // 1-5
+  title   String?
+  comment String? @db.Text
+
   // Media
-  images      String[]
-  
+  images String[]
+
   // Verification
-  isVerified  Boolean  @default(true)
-  
+  isVerified Boolean @default(true)
+
   // Response
-  sellerResponse String? @db.Text
+  sellerResponse String?   @db.Text
   respondedAt    DateTime?
-  
+
   // Moderation
-  isHidden       Boolean  @default(false)
-  hiddenReason   String?
-  moderatedBy    String?
-  moderatedAt    DateTime?
-  
+  isHidden     Boolean   @default(false)
+  hiddenReason String?
+  moderatedBy  String?
+  moderatedAt  DateTime?
+
   // Helpfulness
   helpfulCount    Int @default(0)
   notHelpfulCount Int @default(0)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([productId])
   @@index([sellerId])
   @@index([userId])
@@ -690,53 +690,53 @@ enum ContentStatus {
 }
 
 model ContentCategory {
-  id          String   @id @default(cuid())
-  slug        String   @unique
+  id          String  @id @default(cuid())
+  slug        String  @unique
   name        String
-  description String?  @db.Text
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  posts       ContentPost[]
-  
+  description String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts ContentPost[]
+
   @@map("content_categories")
 }
 
 model ContentPost {
-  id          String        @id @default(cuid())
-  slug        String        @unique
-  
-  categoryId  String?
-  category    ContentCategory? @relation(fields: [categoryId], references: [id])
-  
-  title       String
-  excerpt     String        @db.Text
-  content     String        @db.Text
-  
-  coverImage  String?
-  
-  authorId    String
-  
-  status      ContentStatus @default(DRAFT)
-  
+  id   String @id @default(cuid())
+  slug String @unique
+
+  categoryId String?
+  category   ContentCategory? @relation(fields: [categoryId], references: [id])
+
+  title   String
+  excerpt String @db.Text
+  content String @db.Text
+
+  coverImage String?
+
+  authorId String
+
+  status ContentStatus @default(DRAFT)
+
   // SEO
   metaTitle       String?
   metaDescription String?
   keywords        String[]
-  
+
   // Stats
-  viewCount   Int          @default(0)
-  
+  viewCount Int @default(0)
+
   publishedAt DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
   @@index([slug])
   @@index([status])
   @@index([publishedAt])
   @@index([categoryId, status])
-  @@fulltext([title, content])
+  //@@fulltext([title, content])
   @@map("content_posts")
 }
 
@@ -745,15 +745,15 @@ model ContentPost {
 // ============================================
 
 model SavedProduct {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  productId   String
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
-  createdAt   DateTime @default(now())
-  
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
   @@unique([userId, productId])
   @@index([userId])
   @@map("saved_products")
@@ -781,22 +781,22 @@ enum NotificationType {
 }
 
 model Notification {
-  id          String           @id @default(cuid())
-  userId      String
-  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  type        NotificationType
-  title       String
-  message     String           @db.Text
-  
-  link        String?
-  metadata    Json?
-  
-  read        Boolean          @default(false)
-  readAt      DateTime?
-  
-  createdAt   DateTime         @default(now())
-  
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type    NotificationType
+  title   String
+  message String           @db.Text
+
+  link     String?
+  metadata Json?
+
+  read   Boolean   @default(false)
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+
   @@index([userId])
   @@index([read])
   @@index([createdAt])

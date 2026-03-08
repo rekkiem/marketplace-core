@@ -1,0 +1,592 @@
+// EXTENSIÓN DEL SCHEMA PARA MARKETPLACE HÍBRIDO
+// Agregar esto al final del schema.prisma existente
+
+// ============================================
+// RENTALS & FLEET MANAGEMENT
+// ============================================
+
+enum FleetItemStatus {
+  AVAILABLE
+  RENTED
+  MAINTENANCE
+  DAMAGED
+  RETIRED
+}
+
+enum RentalStatus {
+  PENDING_APPROVAL    // Esperando aprobación de depósito
+  CONFIRMED           // Aprobado, esperando fecha inicio
+  ACTIVE              // Actualmente rentado
+  PENDING_RETURN      // Cerca de fecha fin
+  OVERDUE             // Pasó fecha de retorno
+  RETURNED            // Devuelto, pendiente inspección
+  COMPLETED           // Inspección OK, cerrado
+  CANCELLED           // Cancelado
+  DISPUTED            // En disputa por daños
+}
+
+model FleetItem {
+  id              String          @id @default(cuid())
+  
+  sellerId        String
+  seller          Seller          @relation("SellerFleet", fields: [sellerId], references: [id], onDelete: Cascade)
+  
+  // Basic Info
+  name            String
+  description     String          @db.Text
+  category        String          // "Heavy Machinery", "Tools", "Vehicles"
+  
+  // Physical Details
+  brand           String?
+  model           String?
+  year            Int?
+  serialNumber    String?         @unique
+  
+  // Pricing
+  dailyRate       Float
+  weeklyRate      Float?          // Descuento semanal
+  monthlyRate     Float?
+  
+  // Deposit Calculation
+  baseValue       Float           // Valor del equipo
+  depositPercent  Float           @default(0.20) // % del valor como depósito
+  
+  // Specifications
+  specifications  Json?           // Specs técnicas
+  images          String[]
+  documents       String[]        // Manuales, certificados
+  
+  // Status
+  status          FleetItemStatus @default(AVAILABLE)
+  
+  // Tracking
+  currentLocation String?
+  gpsEnabled      Boolean         @default(false)
+  
+  // Maintenance
+  lastMaintenance DateTime?
+  nextMaintenance DateTime?
+  maintenanceLog  Json?
+  
+  // Stats
+  totalRentals    Int             @default(0)
+  totalRevenue    Float           @default(0)
+  utilizationRate Float           @default(0) // % tiempo rentado
+  
+  // Timestamps
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+  
+  // Relations
+  rentals         Rental[]
+  availability    FleetAvailability[]
+  
+  @@index([sellerId])
+  @@index([status])
+  @@index([category])
+  @@map("fleet_items")
+}
+
+model Rental {
+  id              String        @id @default(cuid())
+  rentalNumber    String        @unique // RENT-20240310-XXXXX
+  
+  fleetItemId     String
+  fleetItem       FleetItem     @relation(fields: [fleetItemId], references: [id])
+  
+  userId          String
+  
+  sellerId        String
+  
+  // Dates
+  startDate       DateTime
+  endDate         DateTime
+  actualReturnDate DateTime?
+  
+  // Pricing
+  dailyRate       Float         // Snapshot del rate
+  totalDays       Int
+  subtotal        Float
+  insurance       Float         @default(0)
+  delivery        Float         @default(0)
+  total           Float
+  
+  // Deposit
+  depositAmount   Float
+  depositHeld     Float         // Puede ser menor si hubo deducciones
+  depositRefunded Float         @default(0)
+  depositStatus   String        @default("held") // held, refunded, deducted
+  
+  // Status
+  status          RentalStatus  @default(PENDING_APPROVAL)
+  
+  // Contract
+  contractTerms   Json          // T&C aceptados
+  contractSigned  Boolean       @default(false)
+  contractDate    DateTime?
+  
+  // Inspection
+  preRentalCheck  Json?         // Photos, condition notes
+  postRentalCheck Json?         // Inspection al devolver
+  damageReport    Json?
+  
+  // Deductions
+  deductions      Json?         // { cleaning: 50, damage: 200 }
+  totalDeducted   Float         @default(0)
+  
+  // Extensions
+  extensionCount  Int           @default(0)
+  extensions      Json?         // Historical de extensiones
+  
+  // Payment
+  paymentId       String?
+  escrowHoldId    String?
+  
+  // Metadata
+  notes           String?       @db.Text
+  deliveryAddress String?       @db.Text
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([fleetItemId])
+  @@index([userId])
+  @@index([sellerId])
+  @@index([status])
+  @@index([startDate, endDate])
+  @@map("rentals")
+}
+
+model FleetAvailability {
+  id            String      @id @default(cuid())
+  fleetItemId   String
+  fleetItem     FleetItem   @relation(fields: [fleetItemId], references: [id], onDelete: Cascade)
+  
+  // Block Details
+  blockType     String      // RENTAL, MAINTENANCE, MANUAL_BLOCK
+  startDate     DateTime
+  endDate       DateTime
+  
+  // Reference
+  rentalId      String?
+  reason        String?
+  priority      Int         @default(1) // Para resolver conflictos
+  
+  createdAt     DateTime    @default(now())
+  
+  @@index([fleetItemId])
+  @@index([startDate, endDate])
+  @@map("fleet_availability")
+}
+
+// ============================================
+// SERVICES & BOOKINGS (ENHANCED)
+// ============================================
+
+enum BookingStatus {
+  PENDING_CONFIRMATION
+  CONFIRMED
+  ASSIGNED           // Técnico asignado
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model Technician {
+  id              String        @id @default(cuid())
+  sellerId        String
+  seller          Seller        @relation("SellerTechnicians", fields: [sellerId], references: [id], onDelete: Cascade)
+  
+  // Personal Info
+  firstName       String
+  lastName        String
+  email           String        @unique
+  phone           String
+  avatar          String?
+  
+  // Professional
+  skills          String[]      // ["Electricidad", "Plomería"]
+  certifications  Json?
+  experience      Int?          // Años
+  
+  // Availability
+  workingHours    Json          // { monday: ["09:00-18:00"], ... }
+  serviceAreas    String[]      // Zonas que cubre
+  
+  // Stats
+  rating          Float         @default(0)
+  totalJobs       Int           @default(0)
+  completionRate  Float         @default(0)
+  
+  // Status
+  isActive        Boolean       @default(true)
+  isVerified      Boolean       @default(false)
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+  
+  // Relations
+  bookings        Booking[]
+  availability    TechnicianAvailability[]
+  
+  @@index([sellerId])
+  @@index([isActive])
+  @@map("technicians")
+}
+
+model Booking {
+  id              String        @id @default(cuid())
+  bookingNumber   String        @unique
+  
+  // Service Product (from main Product table)
+  productId       String        // Product where type = SERVICE or HYBRID
+  
+  // Linked to Purchase (for HYBRID)
+  linkedOrderItemId String?     // Si viene con compra de producto
+  
+  userId          String
+  
+  sellerId        String
+  
+  // Technician
+  technicianId    String?
+  technician      Technician?   @relation(fields: [technicianId], references: [id])
+  
+  // Scheduling
+  scheduledDate   DateTime
+  scheduledTime   String        // "09:00-12:00"
+  duration        Int           // Minutos
+  
+  // Location
+  addressId       String?
+  serviceAddress  String        @db.Text
+  
+  // Pricing
+  serviceRate     Float
+  materialsCost   Float         @default(0)
+  total           Float
+  
+  // Status
+  status          BookingStatus @default(PENDING_CONFIRMATION)
+  
+  // Execution
+  startedAt       DateTime?
+  completedAt     DateTime?
+  
+  // Evidence
+  beforePhotos    String[]
+  afterPhotos     String[]
+  workDescription String?       @db.Text
+  
+  // Payment
+  escrowHoldId    String?
+  
+  // Metadata
+  notes           String?       @db.Text
+  customerNotes   String?       @db.Text
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  @@index([productId])
+  @@index([userId])
+  @@index([sellerId])
+  @@index([technicianId])
+  @@index([scheduledDate])
+  @@index([status])
+  @@map("bookings")
+}
+
+model TechnicianAvailability {
+  id            String      @id @default(cuid())
+  technicianId  String
+  technician    Technician  @relation(fields: [technicianId], references: [id], onDelete: Cascade)
+  
+  // Block Details
+  blockType     String      // BOOKING, TIME_OFF, TRAINING
+  startTime     DateTime
+  endTime       DateTime
+  
+  // Reference
+  bookingId     String?
+  reason        String?
+  
+  createdAt     DateTime    @default(now())
+  
+  @@index([technicianId])
+  @@index([startTime, endTime])
+  @@map("technician_availability")
+}
+
+// ============================================
+// ESCROW & MILESTONE PAYMENTS
+// ============================================
+
+enum EscrowStatus {
+  HELD
+  RELEASED
+  REFUNDED
+  DISPUTED
+  CANCELLED
+}
+
+enum MilestoneStatus {
+  PENDING
+  COMPLETED
+  APPROVED
+  REJECTED
+  DISPUTED
+}
+
+model EscrowHold {
+  id              String        @id @default(cuid())
+  
+  // Reference
+  orderId         String?       // Si es de un Order normal
+  rentalId        String?       // Si es de un Rental
+  bookingId       String?       // Si es de un Booking
+  
+  // Amount
+  totalAmount     Float
+  releasedAmount  Float         @default(0)
+  refundedAmount  Float         @default(0)
+  
+  // Status
+  status          EscrowStatus  @default(HELD)
+  
+  // Release Conditions
+  releaseCondition String       // DELIVERY_CONFIRMED, SERVICE_COMPLETED, etc
+  releaseDate      DateTime?
+  
+  // Platform Fee
+  platformFee     Float
+  platformFeeCollected Boolean   @default(false)
+  
+  // Metadata
+  metadata        Json?
+  
+  // Timestamps
+  heldAt          DateTime      @default(now())
+  releasedAt      DateTime?
+  
+  // Relations
+  splits          EscrowSplit[]
+  milestones      PaymentMilestone[]
+  
+  @@index([orderId])
+  @@index([rentalId])
+  @@index([bookingId])
+  @@index([status])
+  @@map("escrow_holds")
+}
+
+model EscrowSplit {
+  id              String        @id @default(cuid())
+  escrowHoldId    String
+  escrowHold      EscrowHold    @relation(fields: [escrowHoldId], references: [id], onDelete: Cascade)
+  
+  sellerId        String
+  
+  amount          Float
+  releaseCondition String
+  
+  status          EscrowStatus  @default(HELD)
+  
+  releasedAt      DateTime?
+  
+  @@index([escrowHoldId])
+  @@index([sellerId])
+  @@map("escrow_splits")
+}
+
+model PaymentMilestone {
+  id              String          @id @default(cuid())
+  escrowHoldId    String
+  escrowHold      EscrowHold      @relation(fields: [escrowHoldId], references: [id], onDelete: Cascade)
+  
+  // Milestone Details
+  name            String
+  description     String          @db.Text
+  percentage      Float           // % del total
+  amount          Float
+  
+  // Order
+  order           Int             // Secuencia
+  
+  // Condition
+  completionCondition String
+  dueDate         DateTime?
+  
+  // Evidence
+  evidenceRequired Boolean        @default(false)
+  evidenceUrls    String[]
+  
+  // Status
+  status          MilestoneStatus @default(PENDING)
+  
+  // Approval
+  markedCompleteAt DateTime?
+  approvedAt      DateTime?
+  approvedBy      String?
+  
+  // Payment
+  paidAt          DateTime?
+  
+  @@index([escrowHoldId])
+  @@index([status])
+  @@map("payment_milestones")
+}
+
+// ============================================
+// UNIFIED CART (Productos + Servicios + Arriendos)
+// ============================================
+
+enum CartItemType {
+  PRODUCT
+  SERVICE
+  RENTAL
+  BUNDLE    // Product + Service
+}
+
+// Extend existing CartItem model
+// (Agregar estos campos al CartItem existente)
+/*
+model CartItem {
+  // ... campos existentes ...
+  
+  // Nuevos campos para híbrido
+  itemType        CartItemType @default(PRODUCT)
+  
+  // Para RENTAL
+  rentalStartDate DateTime?
+  rentalEndDate   DateTime?
+  rentalDays      Int?
+  depositAmount   Float?
+  
+  // Para SERVICE
+  bookingDate     DateTime?
+  bookingTime     String?
+  technicianId    String?
+  
+  // Para BUNDLE
+  linkedItems     Json?       // Referencias a items relacionados
+  
+  // Pricing
+  basePrice       Float?
+  calculatedTotal Float?
+}
+*/
+
+// ============================================
+// DISPUTES & RESOLUTIONS
+// ============================================
+
+enum DisputeType {
+  RENTAL_DAMAGE
+  SERVICE_NOT_COMPLETED
+  PRODUCT_NOT_AS_DESCRIBED
+  DELIVERY_ISSUE
+  DEPOSIT_REFUND
+  OTHER
+}
+
+enum DisputeStatus {
+  OPEN
+  INVESTIGATING
+  AWAITING_EVIDENCE
+  RESOLVED
+  ESCALATED
+  CLOSED
+}
+
+model Dispute {
+  id              String        @id @default(cuid())
+  
+  // Reference
+  orderId         String?
+  rentalId        String?
+  bookingId       String?
+  
+  // Parties
+  claimantId      String        // Usuario que abre disputa
+  defendantId     String        // Seller/técnico
+  
+  // Type
+  type            DisputeType
+  status          DisputeStatus @default(OPEN)
+  
+  // Description
+  title           String
+  description     String        @db.Text
+  evidence        String[]      // URLs
+  
+  // Amount
+  disputedAmount  Float
+  
+  // Resolution
+  resolution      String?       @db.Text
+  resolvedBy      String?       // Admin ID
+  resolvedAt      DateTime?
+  
+  // Outcome
+  refundAmount    Float?
+  compensationAmount Float?
+  
+  // Timestamps
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  messages        DisputeMessage[]
+  
+  @@index([orderId])
+  @@index([rentalId])
+  @@index([bookingId])
+  @@index([status])
+  @@map("disputes")
+}
+
+model DisputeMessage {
+  id          String    @id @default(cuid())
+  disputeId   String
+  dispute     Dispute   @relation(fields: [disputeId], references: [id], onDelete: Cascade)
+  
+  senderId    String
+  message     String    @db.Text
+  attachments String[]
+  
+  createdAt   DateTime  @default(now())
+  
+  @@index([disputeId])
+  @@map("dispute_messages")
+}
+
+// ============================================
+// RELATIONS TO ADD TO EXISTING MODELS
+// ============================================
+
+// Agregar a Seller:
+/*
+model Seller {
+  // ... campos existentes ...
+  
+  // Nuevas relaciones
+  fleetItems    FleetItem[]    @relation("SellerFleet")
+  technicians   Technician[]   @relation("SellerTechnicians")
+}
+*/
+
+// Agregar a Product:
+/*
+model Product {
+  // ... campos existentes ...
+  
+  // Para servicios
+  bookings      Booking[]
+}
+*/
